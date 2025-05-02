@@ -1,0 +1,1 @@
+g++ main.cpp shaderprogram.cpp -o main.out -lGL -lglfw -lGLEW -llodepng && ./main.out
