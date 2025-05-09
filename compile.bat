@@ -1,1 +1,2 @@
-g++.exe .\main.cpp .\shaderprogram.cpp -o main.exe -lopengl32 -lglfw3 -lglew32 -llodepng; .\main.exe
+g++.exe .\main.cpp .\shaderprogram.cpp .\mesh.cpp -o main.exe -lopengl32 -lglfw3 -lglew32 -llodepng -lassimp
+.\main.exe

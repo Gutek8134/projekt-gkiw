@@ -1,1 +1,1 @@
-g++ main.cpp shaderprogram.cpp -o main.out -lGL -lglfw -lGLEW -llodepng && ./main.out
+g++ main.cpp shaderprogram.cpp mesh.cpp -o main.out -lGL -lglfw -lGLEW -llodepng && ./main.out
