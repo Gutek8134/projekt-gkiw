@@ -95,7 +95,7 @@ void key_callback(
     }
 }
 
-ShaderProgram *Colored, *Textured;
+ShaderProgram *Colored, *Textured, *LambertTextured;
 
 // Initialization code procedure
 void initOpenGLProgram(GLFWwindow *window)
@@ -103,6 +103,7 @@ void initOpenGLProgram(GLFWwindow *window)
     //************Place any code here that needs to be executed once, at the program start************
     Colored = new ShaderProgram("v_colored.glsl", "f_colored.glsl");
     Textured = new ShaderProgram("v_textured.glsl", "f_textured.glsl");
+    LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
     glClearColor(0, 0, 0, 1); // Set color buffer clear color
     glEnable(GL_DEPTH_TEST);  // Turn on pixel depth test based on depth buffer
     glfwSetKeyCallback(window, key_callback);
@@ -112,7 +113,7 @@ void initOpenGLProgram(GLFWwindow *window)
 // Release resources allocated by the program
 void freeOpenGLProgram(GLFWwindow *window)
 {
-    delete Colored, Textured;
+    delete Colored, Textured, LambertTextured;
     for (Mesh *m : meshes)
     {
         delete m;
@@ -156,7 +157,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y)
     // cube(P, V, M);
     for (Mesh *m : meshes)
     {
-        m->drawTextured(Textured, P, V, M);
+        m->drawTexturedShaded(LambertTextured, P, V, M);
         // m->draw(Colored, P, V, M);
     }
 

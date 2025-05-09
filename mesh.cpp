@@ -15,7 +15,7 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene)
     for (int i = 0; i < mesh->mNumVertices; ++i)
     {
         aiVector3D normal = mesh->mNormals[i];
-        vertex_normals.push_back(glm::vec4(normal.x, normal.y, normal.z, 1));
+        vertex_normals.push_back(glm::vec4(normal.x, normal.y, normal.z, 0));
     }
 
     for (int i = 0; i < mesh->mNumFaces; ++i)
@@ -81,9 +81,6 @@ void Mesh::drawTextured(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M
     // Vector >>> array
     glVertexAttribPointer(sp->getAttributeLocation("vertex"), 4, GL_FLOAT, false, 0, draw_vertices.data());
 
-    // glEnableVertexAttribArray(sp->getAttributeLocation("normal"));
-    // glVertexAttribPointer(sp->getAttributeLocation("normal"), 4, GL_FLOAT, false, 0, draw_normals.data());
-
     glEnableVertexAttribArray(sp->getAttributeLocation("texCoord"));
     glVertexAttribPointer(sp->getAttributeLocation("texCoord"), 2, GL_FLOAT, false, 0, draw_texture_coordinates.data());
 
@@ -94,8 +91,36 @@ void Mesh::drawTextured(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M
     glDrawArrays(GL_TRIANGLES, 0, draw_vertices.size());
 
     glDisableVertexAttribArray(sp->getAttributeLocation("vertex"));
-    // glDisableVertexAttribArray(sp->getAttributeLocation("normal"));
     glDisableVertexAttribArray(sp->getAttributeLocation("texCoord"));
+}
+
+void Mesh::drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M)
+{
+    sp->use();
+
+    glUniformMatrix4fv(sp->getUniformLocation("P"), 1, false, glm::value_ptr(P));
+    glUniformMatrix4fv(sp->getUniformLocation("V"), 1, false, glm::value_ptr(V));
+    glUniformMatrix4fv(sp->getUniformLocation("M"), 1, false, glm::value_ptr(M));
+
+    glEnableVertexAttribArray(sp->getAttributeLocation("vertex"));
+    // Vector >>> array
+    glVertexAttribPointer(sp->getAttributeLocation("vertex"), 4, GL_FLOAT, false, 0, draw_vertices.data());
+
+    glEnableVertexAttribArray(sp->getAttributeLocation("texCoord"));
+    glVertexAttribPointer(sp->getAttributeLocation("texCoord"), 2, GL_FLOAT, false, 0, draw_texture_coordinates.data());
+
+    glEnableVertexAttribArray(sp->getAttributeLocation("normal"));
+    glVertexAttribPointer(sp->getAttributeLocation("normal"), 4, GL_FLOAT, false, 0, draw_normals.data());
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffuse_texture);
+    glUniform1i(sp->getUniformLocation("tex"), 0);
+
+    glDrawArrays(GL_TRIANGLES, 0, draw_vertices.size());
+
+    glDisableVertexAttribArray(sp->getAttributeLocation("vertex"));
+    glDisableVertexAttribArray(sp->getAttributeLocation("texCoord"));
+    glDisableVertexAttribArray(sp->getAttributeLocation("normal"));
 }
 
 GLuint readTexture(const char *filename)
@@ -107,7 +132,7 @@ GLuint readTexture(const char *filename)
     std::vector<unsigned char> image; // Allocate memory
     unsigned width, height;           // Variables for image size
     // Read the image
-    unsigned error = lodepng::decode(image, width, height, filename);
+    unsigned error = lodepng::decode(image, width, height, "bricks.png");
     std::cout << "LODEPNG ERROR " << error << std::endl;
 
     // Import to graphics card memory

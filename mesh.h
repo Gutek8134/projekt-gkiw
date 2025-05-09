@@ -19,6 +19,7 @@ public:
     Mesh(aiMesh *, const aiScene *);
     void draw(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
     void drawTextured(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
+    void drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
     void initialize_draw_vertices();
     void initialize_draw_texture_coordinates();
 
