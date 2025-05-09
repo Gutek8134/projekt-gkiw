@@ -4,6 +4,8 @@
 #include <lodepng.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#define small_texture 1
+
 Mesh::Mesh(aiMesh *mesh, const aiScene *scene)
 {
     for (int i = 0; i < mesh->mNumVertices; ++i)
@@ -132,7 +134,13 @@ GLuint readTexture(const char *filename)
     std::vector<unsigned char> image; // Allocate memory
     unsigned width, height;           // Variables for image size
     // Read the image
-    unsigned error = lodepng::decode(image, width, height, "bricks.png");
+    unsigned error = lodepng::decode(image, width, height,
+#if small_texture == 1
+                                     "bricks.png"
+#else
+                                     filename
+#endif
+    );
     std::cout << "LODEPNG ERROR " << error << std::endl;
 
     // Import to graphics card memory
