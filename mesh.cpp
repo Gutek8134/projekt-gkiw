@@ -25,7 +25,7 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene)
     {
         aiFace face = mesh->mFaces[i];
         // Faces are triangulated, which means each has 3 vertices, yay
-        faces.push_back(glm::vec3(face.mIndices[0], face.mIndices[1], face.mIndices[2]));
+        faces.push_back(glm::ivec3(face.mIndices[0], face.mIndices[1], face.mIndices[2]));
     }
 
     has_texture_coordinates = mesh->HasTextureCoords(0);
@@ -42,7 +42,7 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene)
         if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0 && mat->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS)
         {
             diffuse_texture = readTexture(path.C_Str());
-            std::cout << "Diffuse: " << path.C_Str() << " ID " << diffuse_texture << std::endl;
+            // std::cout << "Diffuse: " << path.C_Str() << " ID " << diffuse_texture << std::endl;
         }
         if (mat->GetTextureCount(aiTextureType_SHININESS) > 0 && mat->GetTexture(aiTextureType_SHININESS, 0, &path) == AI_SUCCESS)
         {
@@ -57,6 +57,17 @@ Mesh::Mesh(aiMesh *mesh, const aiScene *scene)
 
 void Mesh::draw(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
+    // static bool t = false;
+    // if (!t)
+    // {
+    //     for (const auto &v : draw_vertices)
+    //     {
+    //         std::cout << v.x << " " << v.y << " " << v.z << std::endl;
+    //     }
+    //     std::cout << vertex_positons.size() << std::endl;
+    //     t = true;
+    // }
+
     sp->use();
 
     glUniformMatrix4fv(sp->getUniformLocation("P"), 1, false, glm::value_ptr(P));
@@ -142,7 +153,8 @@ GLuint readTexture(const char *filename)
                                      filename
 #endif
     );
-    std::cout << "LODEPNG ERROR " << error << std::endl;
+    if (error)
+        std::cout << "LODEPNG ERROR " << error << std::endl;
 
     // Import to graphics card memory
     glGenTextures(1, &tex);            // Initialize one handle

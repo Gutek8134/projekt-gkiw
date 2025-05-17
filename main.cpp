@@ -63,6 +63,42 @@ glm::mat4 rotate_around(glm::mat4 m, glm::vec3 pivot, float angle, glm::vec3 axi
     return m;
 }
 
+/// Generatez plane on XZ plane, centered at (0,0)
+Mesh *generate_plane(unsigned int n = 2, float min = -1, float max = 1)
+{
+    assert(n > 1);
+    Mesh *m = new Mesh();
+
+    m->vertex_positons.reserve(n * n);
+    m->vertex_normals.reserve(n * n);
+    m->faces.reserve((n - 1) * (n - 1));
+
+    for (unsigned int x = 0; x < n; ++x)
+    {
+        if (x != (n - 1))
+            for (unsigned int z = 0; z < n; ++z)
+            {
+                m->vertex_positons.push_back(glm::vec4(min + (float)x / (n - 1) * (max - min), 0, min + (float)z / (n - 1) * (max - min), 1));
+                m->vertex_normals.push_back(glm::vec4(0, 1, 0, 0));
+                if (z != (n - 1))
+                {
+                    unsigned int index = x * n + z;
+                    m->faces.push_back(glm::ivec3(index, index + 1, index + n));
+                    m->faces.push_back(glm::ivec3(index + 1, index + n + 1, index + n));
+                }
+            }
+        else
+            for (unsigned int z = 0; z < n; ++z)
+            {
+                m->vertex_positons.push_back(glm::vec4(min + (float)x / (n - 1) * (max - min), 0, min + (float)z / (n - 1) * (max - min), 1));
+                m->vertex_normals.push_back(glm::vec4(0, 1, 0, 0));
+            }
+    }
+    m->name = "plane";
+    m->initialize_draw_vertices();
+    return m;
+}
+
 // Error processing callback procedure
 void error_callback(int error, const char *description)
 {
@@ -109,6 +145,7 @@ void key_callback(
 }
 
 ShaderProgram *Colored, *Textured, *LambertTextured;
+Mesh *plane;
 
 // Initialization code procedure
 void initOpenGLProgram(GLFWwindow *window)
@@ -117,6 +154,7 @@ void initOpenGLProgram(GLFWwindow *window)
     Colored = new ShaderProgram("v_colored.glsl", "f_colored.glsl");
     Textured = new ShaderProgram("v_textured.glsl", "f_textured.glsl");
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
+    plane = generate_plane(101, -32, 32);
     glClearColor(sky_color); // Set color buffer clear color
     glEnable(GL_DEPTH_TEST); // Turn on pixel depth test based on depth buffer
     glfwSetKeyCallback(window, key_callback);
@@ -133,61 +171,16 @@ void freeOpenGLProgram(GLFWwindow *window)
         delete m;
     }
     meshes.clear();
+    delete plane;
 }
 
 void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-    float vertices[] = {
-        -1.0f,
-        -1.0f,
-        -1.0f,
-        1.0f,
-        1.0f,
-        -1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        -1.0f,
-        -1.0f,
-        1.0f,
-
-        -1.0f,
-        -1.0f,
-        -1.0f,
-        1.0f,
-        -1.0f,
-        -1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        -1.0f,
-        1.0f,
-        1.0f,
-    },
-          colors[] = {
-              water_color,
-              water_color,
-              water_color,
-              water_color,
-              water_color,
-              water_color,
-          };
-
-    shader->use();
-
-    glUniformMatrix4fv(shader->getUniformLocation("P"), 1, false, glm::value_ptr(P));
-    glUniformMatrix4fv(shader->getUniformLocation("V"), 1, false, glm::value_ptr(V));
-    glUniformMatrix4fv(shader->getUniformLocation("M"), 1, false, glm::value_ptr(M));
-
-    glEnableVertexAttribArray(shader->getAttributeLocation("vertex"));
-    glVertexAttribPointer(shader->getAttributeLocation("vertex"), 4, GL_FLOAT, false, 0, vertices);
+    std::vector<glm::vec4> colors = std::vector<glm::vec4>(plane->faces.size() * 3, glm::vec4(water_color));
 
     glEnableVertexAttribArray(shader->getAttributeLocation("color"));
-    glVertexAttribPointer(shader->getAttributeLocation("color"), 4, GL_FLOAT, false, 0, colors);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glDisableVertexAttribArray(shader->getAttributeLocation("vertex"));
+    glVertexAttribPointer(shader->getAttributeLocation("color"), 4, GL_FLOAT, false, 0, colors.data());
+    plane->draw(shader, P, V, M);
     glDisableVertexAttribArray(shader->getAttributeLocation("color"));
 }
 
@@ -203,11 +196,9 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
     glm::mat4 V = glm::lookAt(glm::vec3(0.0f, 6.0f, -15.0f), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Compute view matrix
     glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 50.0f);                                             // Compute projection matrix
 
-    glm::mat4 water_model_matrix = glm::scale(
-        glm::translate(
-            root_model_matrix,
-            glm::vec3(0, 1.f, 0)),
-        glm::vec3(32, 1, 16));
+    glm::mat4 water_model_matrix = glm::translate(
+        root_model_matrix,
+        glm::vec3(0, 0.25f, 0));
     drawWater(Colored, P, V, water_model_matrix);
     for (Mesh *m : meshes)
     {

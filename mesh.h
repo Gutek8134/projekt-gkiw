@@ -11,13 +11,14 @@ public:
     std::vector<glm::vec4> vertex_positons = {};
     std::vector<glm::vec4> vertex_normals = {};
     std::vector<glm::vec2> texture_coordinates = {};
-    std::vector<glm::vec3> faces = {};
+    std::vector<glm::ivec3> faces = {};
     std::string name;
 
     GLuint diffuse_texture;
     GLuint roughness_texture;
 
     Mesh(aiMesh *, const aiScene *);
+    Mesh() = default;
     void draw(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
     void drawTextured(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
     void drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
