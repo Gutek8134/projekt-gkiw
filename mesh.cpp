@@ -8,6 +8,7 @@
 
 Mesh::Mesh(aiMesh *mesh, const aiScene *scene)
 {
+    name = mesh->mName.C_Str();
     for (int i = 0; i < mesh->mNumVertices; ++i)
     {
         aiVector3D vertex = mesh->mVertices[i];

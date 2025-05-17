@@ -12,6 +12,7 @@ public:
     std::vector<glm::vec4> vertex_normals = {};
     std::vector<glm::vec2> texture_coordinates = {};
     std::vector<glm::vec3> faces = {};
+    std::string name;
 
     GLuint diffuse_texture;
     GLuint roughness_texture;

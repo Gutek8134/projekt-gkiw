@@ -19,14 +19,19 @@
 #include <stdio.h>
 #include <vector>
 
-#define PI 3.14
-#define TAU 6.28
+#define PI 3.14f
+#define TAU 6.28f
 #include "shaderprogram.h"
 #include "myCube.h"
 #include "mesh.h"
 
+#define sky_color 0, 0.4f, 0.8f, 1
+#define water_color 0, 0.3f, 1, 1
+#define MAX_TIME 255
+
 float speed_x = 0; //[radians/s]
 float speed_y = 0; //[radians/s]
+float wheel_speed = TAU / 8;
 
 std::vector<Mesh *> meshes;
 
@@ -48,6 +53,14 @@ bool load_scene(const char *path)
     }
 
     return true;
+}
+
+glm::mat4 rotate_around(glm::mat4 m, glm::vec3 pivot, float angle, glm::vec3 axis)
+{
+    m = glm::translate(m, -pivot);
+    m = glm::rotate(m, angle, axis);
+    m = glm::translate(m, pivot);
+    return m;
 }
 
 // Error processing callback procedure
@@ -104,8 +117,8 @@ void initOpenGLProgram(GLFWwindow *window)
     Colored = new ShaderProgram("v_colored.glsl", "f_colored.glsl");
     Textured = new ShaderProgram("v_textured.glsl", "f_textured.glsl");
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
-    glClearColor(0, 0, 0, 1); // Set color buffer clear color
-    glEnable(GL_DEPTH_TEST);  // Turn on pixel depth test based on depth buffer
+    glClearColor(sky_color); // Set color buffer clear color
+    glEnable(GL_DEPTH_TEST); // Turn on pixel depth test based on depth buffer
     glfwSetKeyCallback(window, key_callback);
     load_scene("statek.obj");
 }
@@ -113,52 +126,100 @@ void initOpenGLProgram(GLFWwindow *window)
 // Release resources allocated by the program
 void freeOpenGLProgram(GLFWwindow *window)
 {
+    //************Place any code here that needs to be executed once, after the main loop ends************
     delete Colored, Textured, LambertTextured;
     for (Mesh *m : meshes)
     {
         delete m;
     }
     meshes.clear();
-    //************Place any code here that needs to be executed once, after the main loop ends************
 }
 
-void cube(glm::mat4 P, glm::mat4 V, glm::mat4 M)
+void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-    Colored->use();
+    float vertices[] = {
+        -1.0f,
+        -1.0f,
+        -1.0f,
+        1.0f,
+        1.0f,
+        -1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        -1.0f,
+        -1.0f,
+        1.0f,
 
-    glUniformMatrix4fv(Colored->getUniformLocation("P"), 1, false, glm::value_ptr(P));
-    glUniformMatrix4fv(Colored->getUniformLocation("V"), 1, false, glm::value_ptr(V));
-    glUniformMatrix4fv(Colored->getUniformLocation("M"), 1, false, glm::value_ptr(M));
+        -1.0f,
+        -1.0f,
+        -1.0f,
+        1.0f,
+        -1.0f,
+        -1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        -1.0f,
+        1.0f,
+        1.0f,
+    },
+          colors[] = {
+              water_color,
+              water_color,
+              water_color,
+              water_color,
+              water_color,
+              water_color,
+          };
 
-    glEnableVertexAttribArray(Colored->getAttributeLocation("vertex"));
-    glVertexAttribPointer(Colored->getAttributeLocation("vertex"), 4, GL_FLOAT, false, 0, myCubeVertices);
+    shader->use();
 
-    glEnableVertexAttribArray(Colored->getAttributeLocation("color"));
-    glVertexAttribPointer(Colored->getAttributeLocation("color"), 4, GL_FLOAT, false, 0, myCubeColors);
+    glUniformMatrix4fv(shader->getUniformLocation("P"), 1, false, glm::value_ptr(P));
+    glUniformMatrix4fv(shader->getUniformLocation("V"), 1, false, glm::value_ptr(V));
+    glUniformMatrix4fv(shader->getUniformLocation("M"), 1, false, glm::value_ptr(M));
 
-    glDrawArrays(GL_TRIANGLES, 0, myCubeVertexCount);
+    glEnableVertexAttribArray(shader->getAttributeLocation("vertex"));
+    glVertexAttribPointer(shader->getAttributeLocation("vertex"), 4, GL_FLOAT, false, 0, vertices);
 
-    glDisableVertexAttribArray(Colored->getAttributeLocation("vertex"));
-    glDisableVertexAttribArray(Colored->getAttributeLocation("color"));
+    glEnableVertexAttribArray(shader->getAttributeLocation("color"));
+    glVertexAttribPointer(shader->getAttributeLocation("color"), 4, GL_FLOAT, false, 0, colors);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glDisableVertexAttribArray(shader->getAttributeLocation("vertex"));
+    glDisableVertexAttribArray(shader->getAttributeLocation("color"));
 }
 
 // Drawing procedure
-void drawScene(GLFWwindow *window, float angle_x, float angle_y)
+void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_angle, float time)
 {
     //************Place any code here that draws something inside the window******************l
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffers
 
-    glm::mat4 M = glm::mat4(1.0f);                                                                                      // Initialize model matrix with abn identity matrix
-    M = glm::rotate(M, angle_y, glm::vec3(0.0f, 1.0f, 0.0f));                                                           // Multiply model matrix by the rotation matrix around Y axis by angle_y degrees
-    M = glm::rotate(M, angle_x, glm::vec3(1.0f, 0.0f, 0.0f));                                                           // Multiply model matrix by the rotation matrix around X axis by angle_x degrees
+    glm::mat4 root_model_matrix = glm::mat4(1.0f);                                                                      // Initialize model matrix with abn identity matrix
+    root_model_matrix = glm::rotate(root_model_matrix, angle_y, glm::vec3(0.0f, 1.0f, 0.0f));                           // Multiply model matrix by the rotation matrix around Y axis by angle_y degrees
+    root_model_matrix = glm::rotate(root_model_matrix, angle_x, glm::vec3(1.0f, 0.0f, 0.0f));                           // Multiply model matrix by the rotation matrix around X axis by angle_x degrees
     glm::mat4 V = glm::lookAt(glm::vec3(0.0f, 6.0f, -15.0f), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Compute view matrix
     glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 50.0f);                                             // Compute projection matrix
 
-    // cube(P, V, M);
+    glm::mat4 water_model_matrix = glm::scale(
+        glm::translate(
+            root_model_matrix,
+            glm::vec3(0, 1.f, 0)),
+        glm::vec3(32, 1, 16));
+    drawWater(Colored, P, V, water_model_matrix);
     for (Mesh *m : meshes)
     {
-        m->drawTexturedShaded(LambertTextured, P, V, M);
-        // m->draw(Colored, P, V, M);
+        if (m->name == "kolo")
+        {
+            glm::mat4 wheel_model_matrix = root_model_matrix;
+            wheel_model_matrix = rotate_around(wheel_model_matrix, glm::vec3(-5, 0, 0), wheel_angle, glm::vec3(0, 0, 1));
+            m->drawTexturedShaded(LambertTextured, P, V, wheel_model_matrix);
+        }
+        else
+            m->drawTexturedShaded(LambertTextured, P, V, root_model_matrix);
+        // m->draw(Colored, P, V, root_model_matrix);
     }
 
     glfwSwapBuffers(window); // Copy back buffer to the front buffer
@@ -198,16 +259,30 @@ int main(void)
     initOpenGLProgram(window); // Call initialization procedure
 
     // Main application loop
-    float angle_x = 0;                     // declare variable for storing current rotation angle
-    float angle_y = 0;                     // declare variable for storing current rotation angle
+    float angle_x = 0; // declare variable for storing current rotation angle
+    float angle_y = 0; // declare variable for storing current rotation angle
+    float wheel_angle = 0;
+    float time = 0;
+    float deltaTime = 0;
     glfwSetTime(0);                        // clear internal timer
     while (!glfwWindowShouldClose(window)) // As long as the window shouldnt be closed yet...
     {
-        angle_x += speed_x * glfwGetTime();  // Compute an angle by which the object was rotated during the previous frame
-        angle_y += speed_y * glfwGetTime();  // Compute an angle by which the object was rotated during the previous frame
-        glfwSetTime(0);                      // clear internal timer
-        drawScene(window, angle_x, angle_y); // Execute drawing procedure
-        glfwPollEvents();                    // Process callback procedures corresponding to the events that took place up to now
+        deltaTime = glfwGetTime();
+        angle_x += speed_x * deltaTime; // Compute an angle by which the object was rotated during the previous frame
+        if (angle_x > TAU)
+            angle_x -= TAU;
+        angle_y += speed_y * deltaTime; // Compute an angle by which the object was rotated during the previous frame
+        if (angle_y > TAU)
+            angle_y -= TAU;
+        wheel_angle += wheel_speed * deltaTime;
+        if (wheel_angle > TAU)
+            wheel_angle -= TAU;
+        time += deltaTime;
+        if (time > MAX_TIME)
+            time -= MAX_TIME;
+        glfwSetTime(0);                                         // clear internal timer
+        drawScene(window, angle_x, angle_y, wheel_angle, time); // Execute drawing procedure
+        glfwPollEvents();                                       // Process callback procedures corresponding to the events that took place up to now
     }
     freeOpenGLProgram(window);
 
