@@ -79,7 +79,6 @@ Mesh *generate_plane(unsigned int n = 2, float min = -1, float max = 1)
             for (unsigned int z = 0; z < n; ++z)
             {
                 m->vertex_positons.push_back(glm::vec4(min + (float)x / (n - 1) * (max - min), 0, min + (float)z / (n - 1) * (max - min), 1));
-                m->vertex_normals.push_back(glm::vec4(0, 1, 0, 0));
                 if (z != (n - 1))
                 {
                     unsigned int index = x * n + z;
@@ -91,9 +90,9 @@ Mesh *generate_plane(unsigned int n = 2, float min = -1, float max = 1)
             for (unsigned int z = 0; z < n; ++z)
             {
                 m->vertex_positons.push_back(glm::vec4(min + (float)x / (n - 1) * (max - min), 0, min + (float)z / (n - 1) * (max - min), 1));
-                m->vertex_normals.push_back(glm::vec4(0, 1, 0, 0));
             }
     }
+    m->vertex_normals = std::vector<glm::vec4>(m->faces.size() * 3, glm::vec4(0, 1, 0, 0));
     m->name = "plane";
     m->initialize_draw_vertices();
     return m;
@@ -144,7 +143,7 @@ void key_callback(
     }
 }
 
-ShaderProgram *Colored, *Textured, *LambertTextured;
+ShaderProgram *Colored, *Textured, *LambertTextured, *Water;
 Mesh *plane;
 
 // Initialization code procedure
@@ -154,6 +153,7 @@ void initOpenGLProgram(GLFWwindow *window)
     Colored = new ShaderProgram("v_colored.glsl", "f_colored.glsl");
     Textured = new ShaderProgram("v_textured.glsl", "f_textured.glsl");
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
+    Water = new ShaderProgram("v_water.glsl", "f_water.glsl");
     plane = generate_plane(101, -32, 32);
     glClearColor(sky_color); // Set color buffer clear color
     glEnable(GL_DEPTH_TEST); // Turn on pixel depth test based on depth buffer
@@ -165,7 +165,7 @@ void initOpenGLProgram(GLFWwindow *window)
 void freeOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, after the main loop ends************
-    delete Colored, Textured, LambertTextured;
+    delete Colored, Textured, LambertTextured, Water;
     for (Mesh *m : meshes)
     {
         delete m;
@@ -178,10 +178,13 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
     std::vector<glm::vec4> colors = std::vector<glm::vec4>(plane->faces.size() * 3, glm::vec4(water_color));
 
-    glEnableVertexAttribArray(shader->getAttributeLocation("color"));
-    glVertexAttribPointer(shader->getAttributeLocation("color"), 4, GL_FLOAT, false, 0, colors.data());
+    glEnableVertexAttribArray(shader->getAttributeLocation("colors"));
+    glEnableVertexAttribArray(shader->getAttributeLocation("normals"));
+    glVertexAttribPointer(shader->getAttributeLocation("colors"), 4, GL_FLOAT, false, 0, colors.data());
+    glVertexAttribPointer(shader->getAttributeLocation("normals"), 4, GL_FLOAT, false, 0, plane->vertex_normals.data());
     plane->draw(shader, P, V, M);
-    glDisableVertexAttribArray(shader->getAttributeLocation("color"));
+    glDisableVertexAttribArray(shader->getAttributeLocation("colors"));
+    glDisableVertexAttribArray(shader->getAttributeLocation("normals"));
 }
 
 // Drawing procedure
@@ -199,7 +202,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
     glm::mat4 water_model_matrix = glm::translate(
         root_model_matrix,
         glm::vec3(0, 0.25f, 0));
-    drawWater(Colored, P, V, water_model_matrix);
+    drawWater(Water, P, V, water_model_matrix);
     for (Mesh *m : meshes)
     {
         if (m->name == "kolo")
