@@ -14,6 +14,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <math.h>
 #include <stdlib.h>
 #include <iostream>
 #include <stdio.h>
@@ -28,6 +29,7 @@
 #define sky_color 0, 0.4f, 0.8f, 1
 #define water_color 0, 0.3f, 1, 1
 #define MAX_TIME 255
+#define water_side_length 100
 
 float speed_x = 0; //[radians/s]
 float speed_y = 0; //[radians/s]
@@ -143,7 +145,7 @@ void key_callback(
     }
 }
 
-ShaderProgram *Colored, *Textured, *LambertTextured, *Water;
+ShaderProgram *Colored, *Lambert, *LambertTextured, *Water;
 Mesh *plane;
 
 // Initialization code procedure
@@ -151,10 +153,10 @@ void initOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, at the program start************
     Colored = new ShaderProgram("v_colored.glsl", "f_colored.glsl");
-    Textured = new ShaderProgram("v_textured.glsl", "f_textured.glsl");
+    Lambert = new ShaderProgram("v_lambert.glsl", "f_lambert.glsl");
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
     Water = new ShaderProgram("v_water.glsl", "f_water.glsl");
-    plane = generate_plane(101, -32, 32);
+    plane = generate_plane(water_side_length, -32, 32);
     glClearColor(sky_color); // Set color buffer clear color
     glEnable(GL_DEPTH_TEST); // Turn on pixel depth test based on depth buffer
     glfwSetKeyCallback(window, key_callback);
@@ -165,7 +167,7 @@ void initOpenGLProgram(GLFWwindow *window)
 void freeOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, after the main loop ends************
-    delete Colored, Textured, LambertTextured, Water;
+    delete Colored, Lambert, LambertTextured, Water;
     for (Mesh *m : meshes)
     {
         delete m;
@@ -174,17 +176,35 @@ void freeOpenGLProgram(GLFWwindow *window)
     delete plane;
 }
 
-void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M)
+void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, float phase)
 {
-    std::vector<glm::vec4> colors = std::vector<glm::vec4>(plane->faces.size() * 3, glm::vec4(water_color));
+
+    std::vector<glm::vec4> colors = std::vector<glm::vec4>(plane->faces.size() * 3, glm::vec4(water_color)),
+                           offsets = std::vector<glm::vec4>(plane->faces.size() * 3);
+
+    const float size = 2;
+    int j = 0;
+    for (const auto &face : plane->faces)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            auto index = face[i];
+            int x = index % water_side_length, y = index / water_side_length;
+            plane->vertex_normals[j] = glm::normalize(-glm::vec4(glm::cross(glm::vec3(cos(x + y) / size + phase, 0, 0), glm::vec3(0, 0, cos(x + y) / size + phase)), 0));
+            offsets[j++] = glm::vec4(0, (sin((x + y) / size + phase)), 0, 0);
+        }
+    }
 
     glEnableVertexAttribArray(shader->getAttributeLocation("colors"));
     glEnableVertexAttribArray(shader->getAttributeLocation("normals"));
+    glEnableVertexAttribArray(shader->getAttributeLocation("offset"));
     glVertexAttribPointer(shader->getAttributeLocation("colors"), 4, GL_FLOAT, false, 0, colors.data());
     glVertexAttribPointer(shader->getAttributeLocation("normals"), 4, GL_FLOAT, false, 0, plane->vertex_normals.data());
+    glVertexAttribPointer(shader->getAttributeLocation("offset"), 4, GL_FLOAT, false, 0, offsets.data());
     plane->draw(shader, P, V, M);
     glDisableVertexAttribArray(shader->getAttributeLocation("colors"));
     glDisableVertexAttribArray(shader->getAttributeLocation("normals"));
+    glDisableVertexAttribArray(shader->getAttributeLocation("offset"));
 }
 
 // Drawing procedure
@@ -202,7 +222,11 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
     glm::mat4 water_model_matrix = glm::translate(
         root_model_matrix,
         glm::vec3(0, 0.25f, 0));
-    drawWater(Water, P, V, water_model_matrix);
+
+    static const float frequency = 0.5;
+    float phase = frequency * time;
+    root_model_matrix = glm::translate(root_model_matrix, glm::vec3(0, sin(water_side_length + phase), 0));
+    drawWater(Water, P, V, water_model_matrix, phase);
     for (Mesh *m : meshes)
     {
         if (m->name == "kolo")
