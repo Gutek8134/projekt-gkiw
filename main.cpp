@@ -301,16 +301,18 @@ int main(void)
     float wheel_angle = 0;
     float time = 0;
     float deltaTime = 0;
+    const float max_angle_x = PI / 2 - 0.2;
     glfwSetTime(0);                        // clear internal timer
     while (!glfwWindowShouldClose(window)) // As long as the window shouldnt be closed yet...
     {
         deltaTime = glfwGetTime();
         angle_x += speed_x * deltaTime; // Compute an angle by which the object was rotated during the previous frame
-        if (angle_x > TAU)
-            angle_x -= TAU;
+        angle_x = glm::clamp(angle_x, -max_angle_x, max_angle_x);
         angle_y = angle_y + speed_y * deltaTime; // Compute an angle by which the object was rotated during the previous frame
         if (angle_y > TAU)
             angle_y -= TAU;
+        else if (angle_y < -TAU)
+            angle_y += TAU;
         wheel_angle += wheel_speed * deltaTime;
         if (wheel_angle > TAU)
             wheel_angle -= TAU;
