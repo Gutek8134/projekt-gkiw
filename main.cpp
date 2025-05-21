@@ -190,10 +190,23 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
         {
             auto index = face[i];
             int x = index % water_side_length, y = index / water_side_length;
-            plane->vertex_normals[j] = glm::normalize(-glm::vec4(glm::cross(glm::vec3(cos(x + y) / size + phase, 0, 0), glm::vec3(0, 0, cos(x + y) / size + phase)), 0));
-            offsets[j++] = glm::vec4(0, (sin((x + y) / size + phase)), 0, 0);
+            offsets[j] = glm::vec4(0, (sin((x + y) / size + phase)), 0, 0);
+            switch (i)
+            {
+            case 0:
+                plane->vertex_normals[j] = glm::normalize(glm::vec4(glm::cross(glm::vec3((plane->vertex_positons[face[0]] + offsets[j]) - plane->vertex_positons[face[2]]), glm::vec3(plane->vertex_positons[face[1]] - plane->vertex_positons[face[2]])), 0));
+                break;
+            case 1:
+                plane->vertex_normals[j] = glm::normalize(glm::vec4(glm::cross(glm::vec3(plane->vertex_positons[face[0]] - plane->vertex_positons[face[2]]), glm::vec3((plane->vertex_positons[face[1]] + offsets[j]) - plane->vertex_positons[face[2]])), 0));
+                break;
+            case 2:
+                plane->vertex_normals[j] = glm::normalize(glm::vec4(glm::cross(glm::vec3(plane->vertex_positons[face[0]] - (plane->vertex_positons[face[2]] + offsets[j])), glm::vec3(plane->vertex_positons[face[1]] - (plane->vertex_positons[face[2]] + offsets[j]))), 0));
+                break;
+            }
+            ++j;
         }
     }
+    plane->initialize_draw_vertices();
 
     glEnableVertexAttribArray(shader->getAttributeLocation("colors"));
     glEnableVertexAttribArray(shader->getAttributeLocation("normals"));
