@@ -33,5 +33,5 @@ void main(void) {
     // color = colors;
     f_lightColor = lightColor;
     f_phongExponent = phongExponent;
-    color = vec4(colors.rgb*dot(viewPosition, eyeNormal), colors.a);
+    color = colors;
 }

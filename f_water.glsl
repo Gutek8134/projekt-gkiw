@@ -14,5 +14,6 @@ void main(void) {
 	vec4 n_eyeNormal = normalize(eyeNormal);
 	vec4 n_viewPosition = normalize(viewPosition);
 	vec4 reflection = reflect(-n_light, n_eyeNormal);
-	pixelColor=color+clamp(pow(dot(reflection, n_viewPosition),f_phongExponent),0,1);
+	pixelColor=color*dot(n_viewPosition, n_eyeNormal)+clamp(pow(dot(reflection, n_viewPosition),f_phongExponent),0,1);
+    // pixelColor = vec4(1,1,1,1)*dot(n_viewPosition,n_eyeNormal);
 }

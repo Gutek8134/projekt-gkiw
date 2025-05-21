@@ -27,9 +27,10 @@ public:
 
     ~Mesh();
 
+    std::vector<glm::vec4> draw_normals = {};
+
 private:
     std::vector<glm::vec4> draw_vertices = {};
-    std::vector<glm::vec4> draw_normals = {};
     std::vector<glm::vec2> draw_texture_coordinates = {};
 
     bool has_texture_coordinates = false;

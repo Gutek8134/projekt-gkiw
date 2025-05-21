@@ -180,10 +180,12 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
 {
 
     std::vector<glm::vec4> colors = std::vector<glm::vec4>(plane->faces.size() * 3, glm::vec4(water_color)),
-                           offsets = std::vector<glm::vec4>(plane->faces.size() * 3);
+                           offsets = std::vector<glm::vec4>(plane->faces.size() * 3),
+                           face_normals = std::vector<glm::vec4>(plane->faces.size()),
+                           vertex_normals = std::vector<glm::vec4>(plane->faces.size() * 3);
 
     const float size = 2;
-    int j = 0;
+    int j = 0, face_index = 0;
     for (const auto &face : plane->faces)
     {
         for (int i = 0; i < 3; ++i)
@@ -191,28 +193,22 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
             auto index = face[i];
             int x = index % water_side_length, y = index / water_side_length;
             offsets[j] = glm::vec4(0, (sin((x + y) / size + phase)), 0, 0);
-            switch (i)
-            {
-            case 0:
-                plane->vertex_normals[j] = glm::normalize(glm::vec4(glm::cross(glm::vec3((plane->vertex_positons[face[0]] + offsets[j]) - plane->vertex_positons[face[2]]), glm::vec3(plane->vertex_positons[face[1]] - plane->vertex_positons[face[2]])), 0));
-                break;
-            case 1:
-                plane->vertex_normals[j] = glm::normalize(glm::vec4(glm::cross(glm::vec3(plane->vertex_positons[face[0]] - plane->vertex_positons[face[2]]), glm::vec3((plane->vertex_positons[face[1]] + offsets[j]) - plane->vertex_positons[face[2]])), 0));
-                break;
-            case 2:
-                plane->vertex_normals[j] = glm::normalize(glm::vec4(glm::cross(glm::vec3(plane->vertex_positons[face[0]] - (plane->vertex_positons[face[2]] + offsets[j])), glm::vec3(plane->vertex_positons[face[1]] - (plane->vertex_positons[face[2]] + offsets[j]))), 0));
-                break;
-            }
             ++j;
         }
+        face_normals[face_index++] = glm::normalize(glm::vec4(glm::cross(
+                                                                  glm::vec3((plane->vertex_positons[face[0]] + offsets[j - 3]) - (plane->vertex_positons[face[2]] + offsets[j - 1])),
+                                                                  glm::vec3((plane->vertex_positons[face[1]] + offsets[j - 2]) - (plane->vertex_positons[face[2]] + offsets[j - 1]))),
+                                                              0));
     }
-    plane->initialize_draw_vertices();
+
+    for (int i = 0; i < face_normals.size(); ++i)
+        vertex_normals[3 * i] = vertex_normals[3 * i + 1] = vertex_normals[3 * i + 2] = face_normals[i];
 
     glEnableVertexAttribArray(shader->getAttributeLocation("colors"));
     glEnableVertexAttribArray(shader->getAttributeLocation("normals"));
     glEnableVertexAttribArray(shader->getAttributeLocation("offset"));
     glVertexAttribPointer(shader->getAttributeLocation("colors"), 4, GL_FLOAT, false, 0, colors.data());
-    glVertexAttribPointer(shader->getAttributeLocation("normals"), 4, GL_FLOAT, false, 0, plane->vertex_normals.data());
+    glVertexAttribPointer(shader->getAttributeLocation("normals"), 4, GL_FLOAT, false, 0, vertex_normals.data());
     glVertexAttribPointer(shader->getAttributeLocation("offset"), 4, GL_FLOAT, false, 0, offsets.data());
     plane->draw(shader, P, V, M);
     glDisableVertexAttribArray(shader->getAttributeLocation("colors"));
@@ -236,7 +232,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
     glm::mat4 camera_model_matrix = glm::rotate(root_model_matrix, angle_x, glm::vec3(0.0f, 0.0f, 1.0f));
     camera_model_matrix = glm::rotate(camera_model_matrix, angle_y, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 V = glm::lookAt(glm::vec3(glm::vec4(camera_to_focus, 1) * camera_model_matrix) + focus_point, focus_point, up);
-    glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 50.0f);
+    glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 100.0f);
 
     glm::mat4 water_model_matrix = glm::translate(
         root_model_matrix,
