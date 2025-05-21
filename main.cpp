@@ -226,11 +226,17 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
     //************Place any code here that draws something inside the window******************l
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffers
 
-    glm::mat4 root_model_matrix = glm::mat4(1.0f);                                                                      // Initialize model matrix with abn identity matrix
-    root_model_matrix = glm::rotate(root_model_matrix, angle_y, glm::vec3(0.0f, 1.0f, 0.0f));                           // Multiply model matrix by the rotation matrix around Y axis by angle_y degrees
-    root_model_matrix = glm::rotate(root_model_matrix, angle_x, glm::vec3(1.0f, 0.0f, 0.0f));                           // Multiply model matrix by the rotation matrix around X axis by angle_x degrees
-    glm::mat4 V = glm::lookAt(glm::vec3(0.0f, 6.0f, -15.0f), glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Compute view matrix
-    glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 50.0f);                                             // Compute projection matrix
+    glm::mat4 root_model_matrix = glm::mat4(1.0f);
+    glm::vec3 camera_position = glm::vec4(0, 30, 0, 0),
+              focus_point = glm::vec3(0, 1, 0),
+              up = glm::vec3(0, 1, 0),
+              right = glm::vec3(0, 0, 1),
+              camera_to_focus = (camera_position - focus_point),
+              direction = glm::normalize(camera_to_focus);
+    glm::mat4 camera_model_matrix = glm::rotate(root_model_matrix, angle_x, glm::vec3(0.0f, 0.0f, 1.0f));
+    camera_model_matrix = glm::rotate(camera_model_matrix, angle_y, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 V = glm::lookAt(glm::vec3(glm::vec4(camera_to_focus, 1) * camera_model_matrix) + focus_point, focus_point, up);
+    glm::mat4 P = glm::perspective(glm::radians(50.0f), 1.0f, 1.0f, 50.0f);
 
     glm::mat4 water_model_matrix = glm::translate(
         root_model_matrix,
@@ -302,7 +308,7 @@ int main(void)
         angle_x += speed_x * deltaTime; // Compute an angle by which the object was rotated during the previous frame
         if (angle_x > TAU)
             angle_x -= TAU;
-        angle_y += speed_y * deltaTime; // Compute an angle by which the object was rotated during the previous frame
+        angle_y = angle_y + speed_y * deltaTime; // Compute an angle by which the object was rotated during the previous frame
         if (angle_y > TAU)
             angle_y -= TAU;
         wheel_angle += wheel_speed * deltaTime;
