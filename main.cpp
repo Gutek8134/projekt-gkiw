@@ -184,7 +184,7 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
                            face_normals = std::vector<glm::vec4>(plane->faces.size()),
                            vertex_normals = std::vector<glm::vec4>(plane->faces.size() * 3);
 
-    const float size = 2;
+    const float size = 10;
     int j = 0, face_index = 0;
     for (const auto &face : plane->faces)
     {
