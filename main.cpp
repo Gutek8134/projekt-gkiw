@@ -74,6 +74,9 @@ Mesh *generate_plane(unsigned int n = 2, float min = -1, float max = 1)
     m->vertex_positons.reserve(n * n);
     m->vertex_normals.reserve(n * n);
     m->faces.reserve((n - 1) * (n - 1));
+    m->has_texture_coordinates = true;
+    m->diffuse_texture = readTexture("water.png");
+    m->texture_coordinates = std::vector<glm::vec2>(n * n, glm::vec2(0.5f));
 
     for (unsigned int x = 0; x < n; ++x)
     {
@@ -97,6 +100,7 @@ Mesh *generate_plane(unsigned int n = 2, float min = -1, float max = 1)
     m->vertex_normals = std::vector<glm::vec4>(m->faces.size() * 3, glm::vec4(0, 1, 0, 0));
     m->name = "plane";
     m->initialize_draw_vertices();
+    m->initialize_draw_texture_coordinates();
     return m;
 }
 
@@ -210,7 +214,7 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
     glVertexAttribPointer(shader->getAttributeLocation("colors"), 4, GL_FLOAT, false, 0, colors.data());
     glVertexAttribPointer(shader->getAttributeLocation("normals"), 4, GL_FLOAT, false, 0, vertex_normals.data());
     glVertexAttribPointer(shader->getAttributeLocation("offset"), 4, GL_FLOAT, false, 0, offsets.data());
-    plane->draw(shader, P, V, M);
+    plane->drawTextured(shader, P, V, M);
     glDisableVertexAttribArray(shader->getAttributeLocation("colors"));
     glDisableVertexAttribArray(shader->getAttributeLocation("normals"));
     glDisableVertexAttribArray(shader->getAttributeLocation("offset"));

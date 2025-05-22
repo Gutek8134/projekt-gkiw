@@ -7,16 +7,16 @@ uniform mat4 M;
 uniform vec4 lightColor = vec4(1);
 // World space
 uniform vec4 lightPosition = vec4(0, 1, 6, 1);
-uniform int phongExponent=10;
+uniform int phongExponent=30;
 
 //Attributes
 in vec4 vertex; //Vertex coordinates in model space
-in vec4 colors;
+in vec2 texCoord;
 // Model space
 in vec4 normals;
 in vec4 offset;
 
-out vec4 color;
+out vec2 texture_coordinate;
 out vec4 light;
 out vec4 eyeNormal;
 out vec4 viewPosition;
@@ -33,5 +33,5 @@ void main(void) {
     // color = colors;
     f_lightColor = lightColor;
     f_phongExponent = phongExponent;
-    color = colors;
+    texture_coordinate = texCoord;
 }

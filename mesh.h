@@ -28,12 +28,11 @@ public:
     ~Mesh();
 
     std::vector<glm::vec4> draw_normals = {};
+    bool has_texture_coordinates = false;
 
 private:
     std::vector<glm::vec4> draw_vertices = {};
     std::vector<glm::vec2> draw_texture_coordinates = {};
-
-    bool has_texture_coordinates = false;
 };
 
 GLuint readTexture(const char *filename);

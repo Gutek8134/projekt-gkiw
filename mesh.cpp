@@ -199,5 +199,6 @@ void Mesh::initialize_draw_texture_coordinates()
 
 Mesh::~Mesh()
 {
-    glDeleteTextures(1, &diffuse_texture);
+    if (has_texture_coordinates)
+        glDeleteTextures(1, &diffuse_texture);
 }
