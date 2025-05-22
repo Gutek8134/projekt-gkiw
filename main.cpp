@@ -20,8 +20,7 @@
 #include <stdio.h>
 #include <vector>
 
-#define PI 3.14f
-#define TAU 6.28f
+#include "constants.hpp"
 #include "shaderprogram.h"
 #include "myCube.h"
 #include "mesh.h"
@@ -244,7 +243,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
 
     static const float frequency = 0.5;
     float phase = frequency * time;
-    root_model_matrix = glm::translate(root_model_matrix, glm::vec3(0, sin(water_side_length + phase), 0));
+    root_model_matrix = glm::translate(root_model_matrix, glm::vec3(0, sin(water_side_length - phase) - 0.4, 0));
     drawWater(Water, P, V, water_model_matrix, phase);
     for (Mesh *m : meshes)
     {
