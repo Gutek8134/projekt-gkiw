@@ -251,7 +251,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
         if (m->name == "kolo")
         {
             glm::mat4 wheel_model_matrix = root_model_matrix;
-            wheel_model_matrix = rotate_around(wheel_model_matrix, glm::vec3(-5, 0, 0), wheel_angle, glm::vec3(0, 0, 1));
+            wheel_model_matrix = rotate_around(wheel_model_matrix, glm::vec3(-4.7, 0, 0), wheel_angle, glm::vec3(0, 0, 1));
             m->drawTexturedShaded(LambertTextured, P, V, wheel_model_matrix);
         }
         else
