@@ -44,6 +44,9 @@ void ParticleSystem::draw(float deltaTime, glm::mat4 P, glm::mat4 V, glm::mat4 r
             ++i;
     }
 
+    glEnableVertexAttribArray(this->shader->getAttributeLocation("normal"));
+    glVertexAttribPointer(this->shader->getAttributeLocation("normal"), 4, GL_FLOAT, false, 0, particle->draw_normals.data());
+
     for (int i = 0; i < particle_positions.size(); ++i)
     {
         // Move according to particle's velocity
@@ -53,6 +56,8 @@ void ParticleSystem::draw(float deltaTime, glm::mat4 P, glm::mat4 V, glm::mat4 r
 
         particle->draw(shader, P, V, glm::translate(glm::mat4(1), particle_positions.at(i)));
     }
+
+    glDisableVertexAttribArray(this->shader->getAttributeLocation("normal"));
 
     int to_spawn = spawn_rate * deltaTime;
 

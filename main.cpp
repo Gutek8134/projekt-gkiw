@@ -341,10 +341,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
         // m->draw(Colored, P, V, root_model_matrix);
     }
 
-    glEnableVertexAttribArray(smoke->shader->getAttributeLocation("normal"));
-    glVertexAttribPointer(smoke->shader->getAttributeLocation("normal"), 4, GL_FLOAT, false, 0, uv_sphere->draw_normals.data());
     smoke->draw(deltaTime, P, V, root_model_matrix);
-    glDisableVertexAttribArray(smoke->shader->getAttributeLocation("normal"));
 
     glfwSwapBuffers(window); // Copy back buffer to the front buffer
 }
