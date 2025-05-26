@@ -1,1 +1,1 @@
-g++ main.cpp shaderprogram.cpp mesh.cpp -o main.out -lGL -lglfw -lGLEW -llodepng -lassimp && ./main.out
+g++ main.cpp shaderprogram.cpp mesh.cpp particle_system.cpp -o main.out -lGL -lglfw -lGLEW -llodepng -lassimp && ./main.out

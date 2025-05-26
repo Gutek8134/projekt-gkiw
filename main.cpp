@@ -24,6 +24,7 @@
 #include "shaderprogram.h"
 #include "myCube.h"
 #include "mesh.h"
+#include "particle_system.hpp"
 
 #define sky_color 0, 0.4f, 0.8f, 1
 #define water_color 0, 0.3f, 1, 1
@@ -103,6 +104,73 @@ Mesh *generate_plane(unsigned int n = 2, float min = -1, float max = 1)
     return m;
 }
 
+Mesh *generate_uvsphere(int segments_x, int segments_y, float radius)
+{
+    assert(segments_x > 2);
+    assert(segments_y > 2);
+    int stack_count = segments_y - 1, sector_count = segments_x;
+
+    Mesh *m = new Mesh();
+    m->vertex_positons.reserve((segments_y - 2) * segments_x + 2);
+    m->vertex_normals.reserve((segments_y - 2) * segments_x + 2);
+    m->faces.reserve(2 * stack_count * segments_x);
+
+    float sector_step = 2 * PI / sector_count;
+    float stack_step = PI / stack_count;
+    float sector_angle, stack_angle;
+
+    // Create vertices
+    float x, y, z, xy;
+    for (int i = 0; i <= stack_count; ++i)
+    {
+        stack_angle = PI / 2 - i * stack_step; // starting from pi/2 to -pi/2
+        xy = radius * cosf(stack_angle);       // r * cos(u)
+        z = radius * sinf(stack_angle);        // r * sin(u)
+
+        for (int j = 0; j <= sector_count; ++j)
+        {
+            sector_angle = j * sector_step; // starting from 0 to 2pi
+
+            x = xy * cosf(sector_angle); // r * cos(u) * cos(v)
+            y = xy * sinf(sector_angle); // r * cos(u) * sin(v)
+            m->vertex_positons.push_back(glm::vec4(x, y, z, 1));
+            m->vertex_normals.push_back(glm::normalize(glm::vec4(x, y, z, 0) / radius));
+        }
+    }
+
+    // k1--k1+1
+    // |  / |
+    // | /  |
+    // k2--k2+1
+    int k1, k2;
+    glm::vec4 normal;
+    for (int i = 0; i < stack_count; ++i)
+    {
+        k1 = i * (sector_count + 1); // beginning of current stack
+        k2 = k1 + sector_count + 1;  // beginning of next stack
+
+        for (int j = 0; j < sector_count; ++j, ++k1, ++k2)
+        {
+            // 2 triangles per sector excluding first and last stacks
+            // k1 => k2 => k1+1
+            if (i != 0)
+            {
+                m->faces.push_back(glm::vec3(k1, k2, k1 + 1));
+            }
+
+            // k1+1 => k2 => k2+1
+            if (i != (stack_count - 1))
+            {
+                m->faces.push_back(glm::vec3(k1 + 1, k2, k2 + 1));
+            }
+        }
+    }
+
+    m->name = "uvsphere";
+    m->initialize_draw_vertices();
+    return m;
+}
+
 // Error processing callback procedure
 void error_callback(int error, const char *description)
 {
@@ -149,7 +217,8 @@ void key_callback(
 }
 
 ShaderProgram *Colored, *Lambert, *LambertTextured, *Water;
-Mesh *plane;
+Mesh *plane, *uv_sphere;
+ParticleSystem *smoke;
 
 // Initialization code procedure
 void initOpenGLProgram(GLFWwindow *window)
@@ -160,6 +229,20 @@ void initOpenGLProgram(GLFWwindow *window)
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
     Water = new ShaderProgram("v_water.glsl", "f_water.glsl");
     plane = generate_plane(water_side_length, -32, 32);
+    uv_sphere = generate_uvsphere(12, 6, 0.1);
+    smoke = new ParticleSystem(
+        glm::vec4(3.5f, 8, 0.5f, 1),
+        glm::vec3(0.3),
+        1000.f,
+        glm::vec4(0, 1, 0, 0),
+        PI / 6,
+        1.f,
+        0.3f,
+        0.05f,
+        3.f,
+        1.f,
+        uv_sphere,
+        Lambert);
     glClearColor(sky_color); // Set color buffer clear color
     glEnable(GL_DEPTH_TEST); // Turn on pixel depth test based on depth buffer
     glfwSetKeyCallback(window, key_callback);
@@ -176,7 +259,7 @@ void freeOpenGLProgram(GLFWwindow *window)
         delete m;
     }
     meshes.clear();
-    delete plane;
+    delete plane, uv_sphere, smoke;
 }
 
 void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, float phase)
@@ -220,7 +303,7 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
 }
 
 // Drawing procedure
-void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_angle, float time)
+void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_angle, float time, float deltaTime)
 {
     //************Place any code here that draws something inside the window******************l
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffers
@@ -257,6 +340,11 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
             m->drawTexturedShaded(LambertTextured, P, V, root_model_matrix);
         // m->draw(Colored, P, V, root_model_matrix);
     }
+
+    glEnableVertexAttribArray(smoke->shader->getAttributeLocation("normal"));
+    glVertexAttribPointer(smoke->shader->getAttributeLocation("normal"), 4, GL_FLOAT, false, 0, uv_sphere->draw_normals.data());
+    smoke->draw(deltaTime, P, V, root_model_matrix);
+    glDisableVertexAttribArray(smoke->shader->getAttributeLocation("normal"));
 
     glfwSwapBuffers(window); // Copy back buffer to the front buffer
 }
@@ -318,9 +406,9 @@ int main(void)
         time += deltaTime;
         if (time > MAX_TIME)
             time -= MAX_TIME;
-        glfwSetTime(0);                                         // clear internal timer
-        drawScene(window, angle_x, angle_y, wheel_angle, time); // Execute drawing procedure
-        glfwPollEvents();                                       // Process callback procedures corresponding to the events that took place up to now
+        glfwSetTime(0);                                                    // clear internal timer
+        drawScene(window, angle_x, angle_y, wheel_angle, time, deltaTime); // Execute drawing procedure
+        glfwPollEvents();                                                  // Process callback procedures corresponding to the events that took place up to now
     }
     freeOpenGLProgram(window);
 
