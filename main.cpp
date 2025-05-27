@@ -216,7 +216,7 @@ void key_callback(
     }
 }
 
-ShaderProgram *Colored, *Lambert, *LambertTextured, *Water;
+ShaderProgram *Colored, *Lambert, *LambertTextured, *Water, *Smoke;
 Mesh *plane, *uv_sphere;
 ParticleSystem *smoke;
 
@@ -228,21 +228,22 @@ void initOpenGLProgram(GLFWwindow *window)
     Lambert = new ShaderProgram("v_lambert.glsl", "f_lambert.glsl");
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
     Water = new ShaderProgram("v_water.glsl", "f_water.glsl");
+    Smoke = new ShaderProgram("v_smoke.glsl", "f_smoke.glsl");
     plane = generate_plane(water_side_length, -32, 32);
-    uv_sphere = generate_uvsphere(12, 6, 0.1);
+    uv_sphere = generate_uvsphere(12, 6, 0.3);
     smoke = new ParticleSystem(
-        glm::vec4(3.5f, 8, 0.5f, 1),
-        glm::vec3(0.3),
-        1000.f,
+        glm::vec4(3.3f, 8, 0.f, 1),
+        glm::vec3(0.1),
+        100.f,
         glm::vec4(0, 1, 0, 0),
         PI / 6,
-        1.f,
+        1.2f,
         0.3f,
         0.05f,
-        3.f,
+        5.f,
         1.f,
         uv_sphere,
-        Lambert);
+        Smoke);
     glClearColor(sky_color); // Set color buffer clear color
     glEnable(GL_DEPTH_TEST); // Turn on pixel depth test based on depth buffer
     glfwSetKeyCallback(window, key_callback);
@@ -253,7 +254,7 @@ void initOpenGLProgram(GLFWwindow *window)
 void freeOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, after the main loop ends************
-    delete Colored, Lambert, LambertTextured, Water;
+    delete Colored, Lambert, LambertTextured, Water, Smoke;
     for (Mesh *m : meshes)
     {
         delete m;
@@ -341,6 +342,8 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
         // m->draw(Colored, P, V, root_model_matrix);
     }
 
+    const glm::vec4 lightSource = smoke->get_origin();
+    glUniform4f(smoke->shader->getUniformLocation("lightSource"), lightSource.x, lightSource.y - 0.1, lightSource.z, lightSource.w);
     smoke->draw(deltaTime, P, V, root_model_matrix);
 
     glfwSwapBuffers(window); // Copy back buffer to the front buffer
@@ -380,8 +383,8 @@ int main(void)
     initOpenGLProgram(window); // Call initialization procedure
 
     // Main application loop
-    float angle_x = 0; // declare variable for storing current rotation angle
-    float angle_y = 0; // declare variable for storing current rotation angle
+    float angle_x = -PI / 6; // declare variable for storing current rotation angle
+    float angle_y = 0;       // declare variable for storing current rotation angle
     float wheel_angle = 0;
     float time = 0;
     float deltaTime = 0;

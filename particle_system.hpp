@@ -13,6 +13,8 @@ public:
     void draw(float deltaTime, glm::mat4 P, glm::mat4 V, glm::mat4 root_object = glm::mat4(1.f));
     ShaderProgram *shader;
 
+    const glm::vec4 &get_origin() { return origin; }
+
 private:
     glm::vec4 origin, direction;
     glm::vec3 position_deviation;
