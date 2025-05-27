@@ -16,5 +16,6 @@ void main(void) {
     *clamp(dot(
         normalize(lightDir),
         normalize(i_normal)
-    ),0,1);
+    ),0,1)
+    *0.8/(length(lightDir)-0.5);
 }

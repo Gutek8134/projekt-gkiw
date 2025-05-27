@@ -343,7 +343,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
     }
 
     const glm::vec4 lightSource = smoke->get_origin();
-    glUniform4f(smoke->shader->getUniformLocation("lightSource"), lightSource.x, lightSource.y - 0.1, lightSource.z, lightSource.w);
+    glUniform4f(smoke->shader->getUniformLocation("lightSource"), lightSource.x, lightSource.y - 0.1 + sin(water_side_length - phase) - 0.4, lightSource.z, lightSource.w);
     smoke->draw(deltaTime, P, V, root_model_matrix);
 
     glfwSwapBuffers(window); // Copy back buffer to the front buffer
