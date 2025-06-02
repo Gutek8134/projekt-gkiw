@@ -35,6 +35,8 @@ float speed_x = 0; //[radians/s]
 float speed_y = 0; //[radians/s]
 float wheel_speed = TAU / 8;
 
+const glm::vec4 light_position = glm::vec4(0, 6, 4, 1);
+
 std::vector<Mesh *> meshes;
 
 bool load_scene(const char *path)
@@ -304,8 +306,6 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
     glDisableVertexAttribArray(shader->getAttributeLocation("normals"));
     glDisableVertexAttribArray(shader->getAttributeLocation("offset"));
 }
-
-const glm::vec4 light_position = glm::vec4(0, 6, 4, 1);
 
 // Drawing procedure
 void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_angle, float time, float deltaTime)
