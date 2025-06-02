@@ -14,6 +14,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include "FastNoiseLite.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
@@ -34,6 +36,8 @@
 float speed_x = 0; //[radians/s]
 float speed_y = 0; //[radians/s]
 float wheel_speed = TAU / 8;
+
+FastNoiseLite noise;
 
 std::vector<Mesh *> meshes;
 
@@ -263,6 +267,8 @@ void freeOpenGLProgram(GLFWwindow *window)
     delete plane, uv_sphere, smoke;
 }
 
+const glm::vec4 light_position = glm::vec4(0, 6, 4, 1);
+
 void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, float phase)
 {
 
@@ -272,6 +278,9 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
                            vertex_normals = std::vector<glm::vec4>(plane->faces.size() * 3);
 
     const float size = 10;
+    noise.SetFractalGain(1.f);
+    noise.SetFrequency(1 / size);
+    noise.SetFractalOctaves(4);
     int j = 0, face_index = 0;
     for (const auto &face : plane->faces)
     {
@@ -279,7 +288,7 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
         {
             auto index = face[i];
             int x = index % water_side_length, y = index / water_side_length;
-            offsets[j] = glm::vec4(0, (sin((x + y) / size + phase)), 0, 0);
+            offsets[j] = glm::vec4(0, (sin((x + y) / size + phase)) + noise.GetNoise(static_cast<float>(x), static_cast<float>(y)), 0, 0);
             ++j;
         }
         face_normals[face_index++] = glm::normalize(glm::vec4(glm::cross(
@@ -304,8 +313,6 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
     glDisableVertexAttribArray(shader->getAttributeLocation("normals"));
     glDisableVertexAttribArray(shader->getAttributeLocation("offset"));
 }
-
-const glm::vec4 light_position = glm::vec4(0, 6, 4, 1);
 
 // Drawing procedure
 void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_angle, float time, float deltaTime)
@@ -362,6 +369,8 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
 
 int main(void)
 {
+    noise.SetNoiseType(FastNoiseLite::NoiseType::NoiseType_Perlin);
+
     meshes = {};
     GLFWwindow *window; // Pointer to object that represents the application window
 
