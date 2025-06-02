@@ -4,7 +4,7 @@
 #include <lodepng.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#define small_texture 1
+#define small_texture 0
 
 Mesh::Mesh(aiMesh *mesh, const aiScene *scene)
 {
@@ -129,6 +129,12 @@ void Mesh::drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuse_texture);
     glUniform1i(sp->getUniformLocation("tex"), 0);
+
+#if small_texture == 0
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, roughness_texture);
+    glUniform1i(sp->getUniformLocation("rough"), 1);
+#endif
 
     glDrawArrays(GL_TRIANGLES, 0, draw_vertices.size());
 
