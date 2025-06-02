@@ -292,6 +292,7 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
         vertex_normals[3 * i] = vertex_normals[3 * i + 1] = vertex_normals[3 * i + 2] = face_normals[i];
 
     shader->use();
+    glUniform4f(shader->getUniformLocation("lightPosition"), light_position.x, light_position.y, light_position.z, light_position.w);
     glEnableVertexAttribArray(shader->getAttributeLocation("colors"));
     glEnableVertexAttribArray(shader->getAttributeLocation("normals"));
     glEnableVertexAttribArray(shader->getAttributeLocation("offset"));
