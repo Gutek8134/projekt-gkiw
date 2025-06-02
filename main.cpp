@@ -216,7 +216,7 @@ void key_callback(
     }
 }
 
-ShaderProgram *Colored, *Lambert, *LambertTextured, *Water, *Smoke;
+ShaderProgram *Chimney, *Lambert, *LambertTextured, *Water, *Smoke;
 Mesh *plane, *uv_sphere;
 ParticleSystem *smoke;
 
@@ -224,7 +224,7 @@ ParticleSystem *smoke;
 void initOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, at the program start************
-    Colored = new ShaderProgram("v_colored.glsl", "f_colored.glsl");
+    Chimney = new ShaderProgram("v_chimney.glsl", "f_chimney.glsl");
     Lambert = new ShaderProgram("v_lambert.glsl", "f_lambert.glsl");
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
     Water = new ShaderProgram("v_water.glsl", "f_water.glsl");
@@ -254,7 +254,7 @@ void initOpenGLProgram(GLFWwindow *window)
 void freeOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, after the main loop ends************
-    delete Colored, Lambert, LambertTextured, Water, Smoke;
+    delete Chimney, Lambert, LambertTextured, Water, Smoke;
     for (Mesh *m : meshes)
     {
         delete m;
@@ -291,6 +291,7 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
     for (int i = 0; i < face_normals.size(); ++i)
         vertex_normals[3 * i] = vertex_normals[3 * i + 1] = vertex_normals[3 * i + 2] = face_normals[i];
 
+    shader->use();
     glEnableVertexAttribArray(shader->getAttributeLocation("colors"));
     glEnableVertexAttribArray(shader->getAttributeLocation("normals"));
     glEnableVertexAttribArray(shader->getAttributeLocation("offset"));
@@ -302,6 +303,8 @@ void drawWater(ShaderProgram *shader, glm::mat4 P, glm::mat4 V, glm::mat4 M, flo
     glDisableVertexAttribArray(shader->getAttributeLocation("normals"));
     glDisableVertexAttribArray(shader->getAttributeLocation("offset"));
 }
+
+const glm::vec4 light_position = glm::vec4(0, 6, 4, 1);
 
 // Drawing procedure
 void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_angle, float time, float deltaTime)
@@ -325,6 +328,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
         root_model_matrix,
         glm::vec3(0, 0.25f, 0));
 
+    const glm::vec4 redLightSource = smoke->get_origin();
     static const float frequency = 0.5;
     float phase = frequency * time;
     root_model_matrix = glm::translate(root_model_matrix, glm::vec3(0, sin(water_side_length - phase) - 0.4, 0));
@@ -335,15 +339,21 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y, float wheel_ang
         {
             glm::mat4 wheel_model_matrix = root_model_matrix;
             wheel_model_matrix = rotate_around(wheel_model_matrix, glm::vec3(-4.7, 0, 0), wheel_angle, glm::vec3(0, 0, 1));
-            m->drawTexturedShaded(LambertTextured, P, V, wheel_model_matrix);
+            m->drawTexturedShaded(LambertTextured, P, V, wheel_model_matrix, light_position);
+        }
+        else if (m->name == "komin")
+        {
+            Chimney->use();
+            glUniform4f(Chimney->getUniformLocation("redLightSource"), redLightSource.x, redLightSource.y - 0.1 + sin(water_side_length - phase) - 0.4, redLightSource.z, redLightSource.w);
+            m->drawTexturedShaded(Chimney, P, V, root_model_matrix, light_position);
         }
         else
-            m->drawTexturedShaded(LambertTextured, P, V, root_model_matrix);
-        // m->draw(Colored, P, V, root_model_matrix);
+            m->drawTexturedShaded(LambertTextured, P, V, root_model_matrix, light_position);
+        // m->draw(Chimney, P, V, root_model_matrix);
     }
 
-    const glm::vec4 lightSource = smoke->get_origin();
-    glUniform4f(smoke->shader->getUniformLocation("lightSource"), lightSource.x, lightSource.y - 0.1 + sin(water_side_length - phase) - 0.4, lightSource.z, lightSource.w);
+    smoke->shader->use();
+    glUniform4f(smoke->shader->getUniformLocation("lightSource"), redLightSource.x, redLightSource.y - 0.1 + sin(water_side_length - phase) - 0.4, redLightSource.z, redLightSource.w);
     smoke->draw(deltaTime, P, V, root_model_matrix);
 
     glfwSwapBuffers(window); // Copy back buffer to the front buffer

@@ -108,10 +108,11 @@ void Mesh::drawTextured(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M
     glDisableVertexAttribArray(sp->getAttributeLocation("texCoord"));
 }
 
-void Mesh::drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M)
+void Mesh::drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M, glm::vec4 light_position)
 {
     sp->use();
 
+    glUniform4f(sp->getUniformLocation("lightPosition"), light_position.x, light_position.y, light_position.z, light_position.w);
     glUniformMatrix4fv(sp->getUniformLocation("P"), 1, false, glm::value_ptr(P));
     glUniformMatrix4fv(sp->getUniformLocation("V"), 1, false, glm::value_ptr(V));
     glUniformMatrix4fv(sp->getUniformLocation("M"), 1, false, glm::value_ptr(M));

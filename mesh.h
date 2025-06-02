@@ -21,7 +21,7 @@ public:
     Mesh() = default;
     void draw(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
     void drawTextured(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
-    void drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M);
+    void drawTexturedShaded(ShaderProgram *sp, glm::mat4 P, glm::mat4 V, glm::mat4 M, glm::vec4 light_position);
     void initialize_draw_vertices();
     void initialize_draw_texture_coordinates();
 
