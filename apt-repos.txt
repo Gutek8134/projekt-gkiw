@@ -1,0 +1,1 @@
+libglew-dev libglfw3-dev libglm-dev libassimp-dev liblodepng-dev

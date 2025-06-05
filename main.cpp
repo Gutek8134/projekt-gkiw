@@ -218,7 +218,7 @@ void key_callback(
     }
 }
 
-ShaderProgram *Chimney, *Lambert, *LambertTextured, *Water, *Smoke;
+ShaderProgram *Chimney, *LambertTextured, *Water, *Smoke;
 Mesh *plane, *uv_sphere;
 ParticleSystem *smoke;
 
@@ -227,7 +227,6 @@ void initOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, at the program start************
     Chimney = new ShaderProgram("v_chimney.glsl", "f_chimney.glsl");
-    Lambert = new ShaderProgram("v_lambert.glsl", "f_lambert.glsl");
     LambertTextured = new ShaderProgram("v_lamberttextured.glsl", "f_lamberttextured.glsl");
     Water = new ShaderProgram("v_water.glsl", "f_water.glsl");
     Smoke = new ShaderProgram("v_smoke.glsl", "f_smoke.glsl");
@@ -256,7 +255,7 @@ void initOpenGLProgram(GLFWwindow *window)
 void freeOpenGLProgram(GLFWwindow *window)
 {
     //************Place any code here that needs to be executed once, after the main loop ends************
-    delete Chimney, Lambert, LambertTextured, Water, Smoke;
+    delete Chimney, LambertTextured, Water, Smoke;
     for (Mesh *m : meshes)
     {
         delete m;
